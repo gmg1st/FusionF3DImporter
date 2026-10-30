@@ -1,0 +1,12 @@
+{
+	"autodeskProduct":	"Fusion360",
+	"type":	"script",
+	"id":	"c9d4e7f2-1a58-4b3d-8f6c-70e2b9d4a513",
+	"author":	"gmg1st",
+	"description":	{
+		"":	"ImportManager 上下文探针：实测脚本/命令事件中 importToTarget 与 FileDialog 的可用性"
+	},
+	"version":	"0.1.0",
+	"runOnStartup":	false,
+	"supportedOS":	"windows|mac"
+}

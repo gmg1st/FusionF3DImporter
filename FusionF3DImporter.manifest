@@ -1,0 +1,12 @@
+{
+	"autodeskProduct":	"Fusion360",
+	"type":	"addin",
+	"id":	"a3f8c2d1-6b47-4e0e-9c1a-8d25f4b7e3a2",
+	"author":	"gmg1st",
+	"description":	{
+		"":	"将本地 F3D 文件导入到当前设计 / Import local F3D files into the current design"
+	},
+	"version":	"0.1.0",
+	"runOnStartup":	true,
+	"supportedOS":	"windows|mac"
+}

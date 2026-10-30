@@ -1,0 +1,8 @@
+# 运行时产物
+import_log.txt
+*.log
+__pycache__/
+*.pyc
+
+# 本地编辑器配置
+.vscode/
