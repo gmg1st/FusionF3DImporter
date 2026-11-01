@@ -51,11 +51,16 @@ _pending_path = None    # 按钮通道受限时暂存的文件路径，交给面
 
 def _pick_f3d_file():
     """弹出文件选择对话框，返回选中路径；用户取消返回 ''。"""
+    _log('文件对话框: 准备打开')
     file_dialog = _ui.createFileDialog()
     file_dialog.title = '选择要导入的 F3D 文件'
     file_dialog.filter = 'Fusion 360 Archive (*.f3d)'
-    if file_dialog.showOpen() != adsk.core.DialogResults.DialogOK:
+    result = file_dialog.showOpen()
+    _log('文件对话框: showOpen 返回 {}'.format(result))
+    if result != adsk.core.DialogResults.DialogOK:
+        _log('文件对话框: 未确认（取消或失败）')
         return ''
+    _log('文件对话框: 已选择 {}'.format(file_dialog.filename))
     return file_dialog.filename
 
 
@@ -270,13 +275,15 @@ def _ensure_palette():
 
 
 # ---------------------------------------------------------------------------
-# 按钮（命令）通道：命令事件中禁止调用 importToTarget（官方限制，已实测确认），
-# 因此点击按钮 → 选文件 → 自动转到面板通道完成导入（用户无感知）
+# 按钮（命令）通道：命令事件中 importToTarget 被官方限制（已实测确认），
+# 但导入实际用的 importToNewDocument 是另一个 API——优先在命令上下文直接导入；
+# 若受限再转面板页面通道兜底（该通道实测每次会话仅首次可靠）。
 # ---------------------------------------------------------------------------
 
 class CommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
     def notify(self, args):
         try:
+            _log('命令事件: CommandCreated 已触发')
             command = adsk.core.Command.cast(args.command)
             if not command:
                 if _ui:
@@ -294,21 +301,39 @@ class CommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
 class CommandExecuteHandler(adsk.core.CommandEventHandler):
     def notify(self, args):
         try:
+            _log('命令事件: execute 已触发')
             path = _pick_f3d_file()
             if not path:
                 return  # 用户取消
-            # 命令事件上下文禁止调用 importToTarget（已实测确认），
-            # 转交隐藏面板自动导入：暂存文件 → 让页面回发 import，
-            # 导入在 HTML 事件上下文执行，不受该限制；面板全程不可见
+            # 第一优先：命令上下文直接导入（importToNewDocument ≠ 被限制的 importToTarget）
+            _log('尝试: 命令上下文直接导入')
+            try:
+                ok, msg = import_f3d_into_current_design(path)
+                if ok:
+                    _log('命令上下文直接导入: 成功')
+                    return
+                _log('命令上下文直接导入: 失败（{}）'.format(msg))
+            except:
+                _log('命令上下文直接导入: 异常 {}'.format(traceback.format_exc(limit=1)))
+            # 兜底：转交隐藏面板自动导入（暂存文件 → 让页面回发 import，
+            # 导入在 HTML 事件上下文执行，不受命令事件限制；面板全程不可见）
             global _pending_path
             _pending_path = path
             palette = _ensure_palette()
+            _log('面板通道: {}'.format('就绪 id={}'.format(palette.id) if palette else '获取失败'))
             if not palette:
                 _ui.messageBox('导入通道初始化失败，请重试或重启 Fusion')
                 return
-            palette.sendInfoToHTML('status', '已选择 {}，正在自动导入…'.format(os.path.basename(path)))
-            palette.sendInfoToHTML('autoimport', path)  # 页面延迟触发导入，等命令事件完全退出
+            send1 = palette.sendInfoToHTML('status', '已选择 {}，正在自动导入…'.format(os.path.basename(path)))
+            _log('面板通道: sendInfoToHTML(status) → {}'.format(send1))
+            send2 = palette.sendInfoToHTML('autoimport', path)  # 页面延迟触发导入，等命令事件完全退出
+            _log('面板通道: sendInfoToHTML(autoimport) → {}'.format(send2))
+            if send2 is False:
+                _ui.messageBox('导入指令发送失败（面板页面未就绪）。\n请再点一次“导入本地 F3D”重试；若反复出现请重启 Fusion。')
+            elif send2 is None:
+                _ui.messageBox('导入指令可能未送达（面板页面失联）。\n请停止并重新运行本插件后再试。')
         except:
+            _log('命令事件异常: {}'.format(traceback.format_exc()))
             if _ui:
                 _ui.messageBox('失败：\n{}'.format(traceback.format_exc()))
 

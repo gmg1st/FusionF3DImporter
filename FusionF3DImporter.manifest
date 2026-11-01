@@ -6,7 +6,7 @@
 	"description":	{
 		"":	"将本地 F3D 文件导入到当前设计 / Import local F3D files into the current design"
 	},
-	"version":	"0.1.0",
+	"version":	"0.1.1",
 	"runOnStartup":	true,
 	"supportedOS":	"windows|mac"
 }

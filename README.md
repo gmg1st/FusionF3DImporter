@@ -6,7 +6,7 @@
 
 - Fusion 360 原生"插入"只认云端数据（插入零部件/云文件），本地 `.f3d` 只能整体"打开"成一个独立文档
 - 部分版本的 `importToTarget` API 存在官方回归 bug（`InternalValidationError : results` / `Internal error: correlationId`），标准导入通道在未保存文档中必然失败
-- 本插件通过 `importToNewDocument`（临时打开）+ 跨文档复制实体（TemporaryBRep）的组合完全绕开了这些限制，**对"未保存（带星号）"的目标文档同样有效**
+- 本插件在命令事件上下文中直接执行 `importToNewDocument`（临时打开）+ 跨文档复制实体（TemporaryBRep）的组合——该 API 通道不受上述限制，隐藏面板页面仅作兜底，**对"未保存（带星号）"的目标文档同样有效**
 
 ## 功能
 
